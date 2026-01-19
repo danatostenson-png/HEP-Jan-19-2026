@@ -1,0 +1,120 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+// The Practitioner (Therapist)
+model User {
+  id        String   @id @default(uuid())
+  email     String   @unique
+  password  String // Hashed
+  name      String?
+  clinicName String?
+  logoUrl   String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  patients  Patient[]
+  programs  Program[]
+  favorites Favorite[]
+}
+
+// The Patient
+model Patient {
+  id        String   @id @default(uuid())
+  name      String
+  email     String?
+  diagnosis String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  
+  userId    String
+  user      User     @relation(fields: [userId], references: [id])
+  programs  Program[]
+}
+
+// The Exercise Library (Pre-built + Custom)
+model Exercise {
+  id          String   @id @default(uuid())
+  title       String
+  description String?
+  imageUrl    String?
+  videoUrl    String?
+  
+  // Tags/Metadata
+  bodyPart    String?  // e.g. "Knee", "Shoulder"
+  difficulty  String?  // "Easy", "Hard"
+  tags        String? // Comma-separated for SQLite compatibility
+  imageSource String   @default("library_url") // "library_url" or "local_upload"
+
+  isCustom    Boolean  @default(false)
+  
+  // Auto-Description / AI Fields
+  autoDescription String?
+  analysisSource  String   @default("manual") // "manual", "photo", "library"
+  nameAnchorUsed  Boolean  @default(false)
+
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  
+  favoritedBy Favorite[]
+}
+
+// A specific program assigned to a patient
+model Program {
+  id          String   @id @default(uuid())
+  title       String?  // Optional title "Knee Rehab Phase 1"
+  status      String   @default("DRAFT") // DRAFT, SENT, COMPLETED
+  shareToken  String   @unique @default(uuid())
+  
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  userId      String
+  user        User     @relation(fields: [userId], references: [id])
+  
+  patientId   String
+  patient     Patient  @relation(fields: [patientId], references: [id])
+
+  exercises   ProgramExercise[]
+}
+
+// Link table for Exercises in a Program (with specific dosage)
+model ProgramExercise {
+  id          String   @id @default(uuid())
+  programId   String
+  program     Program  @relation(fields: [programId], references: [id])
+  
+  exerciseId  String?  // Optional, if it was linked to a library item
+  
+  // Snapshot data (in case library item changes or this is manual)
+  title       String
+  imageUrl    String?
+  description String?
+
+  // Dosage parameters
+  sets        String?
+  reps        String?
+  frequency   String?
+  weight      String?
+  notes       String?
+  
+  order       Int      @default(0) // For sorting in the PDF
+}
+
+model Favorite {
+  id        String   @id @default(uuid())
+  createdAt DateTime @default(now())
+
+  userId    String
+  user      User     @relation(fields: [userId], references: [id])
+
+  exerciseId String
+  exercise   Exercise @relation(fields: [exerciseId], references: [id])
+
+  @@unique([userId, exerciseId])
+}
