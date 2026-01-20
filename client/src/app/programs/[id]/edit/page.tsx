@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, Suspense } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { ProgramForm, ProgramExercise } from "@/components/ProgramForm";
 import api from "@/lib/api";
@@ -11,6 +11,21 @@ import { Header } from "@/components/Header";
 const generateId = () => Math.random().toString(36).substr(2, 9);
 
 export default function EditProgramPage() {
+    return (
+        <Suspense fallback={
+            <div className="min-h-screen bg-gray-50 flex flex-col">
+                <Header />
+                <div className="flex-1 flex items-center justify-center">
+                    <Loader2 className="animate-spin text-gray-400" size={32} />
+                </div>
+            </div>
+        }>
+            <EditProgramContent />
+        </Suspense>
+    );
+}
+
+function EditProgramContent() {
     const params = useParams();
     const router = useRouter();
     const [initialData, setInitialData] = useState<any>(null);

@@ -1,16 +1,24 @@
 "use client";
 
-import { useState } from "react";
+import { Suspense, useState } from "react";
 import { useRouter } from "next/navigation";
 import { ProgramForm } from "@/components/ProgramForm";
 import api from "@/lib/api";
 
 export default function NewProgramPage() {
+    return (
+        <Suspense fallback={<div>Loading...</div>}>
+            <NewProgramContent />
+        </Suspense>
+    );
+}
+
+function NewProgramContent() {
     const router = useRouter();
-    const [isSaving, setIsSaving] = useState(false);
+    const [isSubmitting, setIsSubmitting] = useState(false);
 
     const handleSubmit = async (data: any) => {
-        setIsSaving(true);
+        setIsSubmitting(true);
         try {
             await api.post('/programs', {
                 ...data,

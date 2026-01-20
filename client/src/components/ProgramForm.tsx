@@ -8,7 +8,7 @@ import { ProgramExerciseCard } from "@/components/ProgramExerciseCard";
 import { ExpressImportModal } from "@/components/ExpressImportModal";
 import { Plus, Save, Loader2, ArrowLeft, FileText } from "lucide-react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 
 // Simple ID generator since we might not have uuid
 const generateId = () => Math.random().toString(36).substr(2, 9);
@@ -39,6 +39,10 @@ interface ProgramFormProps {
 }
 
 export function ProgramForm({ initialData, onSubmit, isSubmitting, mode }: ProgramFormProps) {
+    const router = useRouter();
+    const searchParams = useSearchParams();
+    const urlPatientId = searchParams.get('patientId');
+
     const [title, setTitle] = useState("New Program");
     const [selectedPatientId, setSelectedPatientId] = useState<string | null>(null);
     const [exercises, setExercises] = useState<ProgramExercise[]>([]);
@@ -51,8 +55,10 @@ export function ProgramForm({ initialData, onSubmit, isSubmitting, mode }: Progr
             setTitle(initialData.title);
             setSelectedPatientId(initialData.patientId);
             setExercises(initialData.exercises);
+        } else if (urlPatientId) {
+            setSelectedPatientId(urlPatientId);
         }
-    }, [initialData]);
+    }, [initialData, urlPatientId]);
 
     const handleAddExercise = (exercise: any) => {
         const newExercise: ProgramExercise = {

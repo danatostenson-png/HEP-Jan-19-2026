@@ -42,7 +42,8 @@ exports.processExpressImport = async (req, res) => {
 };
 
 async function parseLine(line, globalCadence) {
-    let cleanLine = line.trim();
+    // 1. Normalize unicode spaces to standard space
+    let cleanLine = line.replace(/[\u00A0\u2000-\u200B\u202F\u205F\u3000]/g, ' ').trim();
 
     // Dosage Extraction Results
     let sets = null;
@@ -50,14 +51,24 @@ async function parseLine(line, globalCadence) {
     let weight = null;
     let frequency = globalCadence || null;
 
+    // PATTERN 0: Explicit "X sets of Y reps" (Strongest match)
+    const setsOfRepsRegex = /\b(\d+)\s*sets?\s*of\s*(\d+)\s*reps?\b/i;
+    const setsOfMatch = cleanLine.match(setsOfRepsRegex);
+    if (setsOfMatch) {
+        sets = setsOfMatch[1];
+        reps = setsOfMatch[2];
+        cleanLine = cleanLine.replace(setsOfMatch[0], ' ').trim();
+    }
+
     // PATTERN 1: Sets x Reps (Strict boundary: 3x10, 3 x 10)
-    // Matches: "3x10", "3 x 10"
-    const setsRepsRegex = /\b(\d+)\s*[xX]\s*(\d+)\b/;
-    const setsRepsMatch = cleanLine.match(setsRepsRegex);
-    if (setsRepsMatch) {
-        sets = setsRepsMatch[1];
-        reps = setsRepsMatch[2];
-        cleanLine = cleanLine.replace(setsRepsMatch[0], ' ').trim();
+    if (!sets && !reps) {
+        const setsRepsRegex = /\b(\d+)\s*[xX]\s*(\d+)\b/;
+        const setsRepsMatch = cleanLine.match(setsRepsRegex);
+        if (setsRepsMatch) {
+            sets = setsRepsMatch[1];
+            reps = setsRepsMatch[2];
+            cleanLine = cleanLine.replace(setsRepsMatch[0], ' ').trim();
+        }
     }
 
     // PATTERN 2: Explicit Sets (e.g. "3 sets", "3 Sets") - Capture ONLY if sets not already found
@@ -120,15 +131,59 @@ async function parseLine(line, globalCadence) {
     let title = cleanLine;
     if (title.length === 0) return null;
 
-    // MATCHING
-    const match = await prisma.exercise.findFirst({
+    // MATCHING STRATEGY
+    // 1. Exact Match (Case insensitive)
+    let match = await prisma.exercise.findFirst({
         where: {
             title: {
-                contains: title
+                equals: title,
             },
             isCustom: false
         }
     });
+
+    // 2. Exact Match Singularized (e.g. "Squats" -> "Squat")
+    if (!match && title.toLowerCase().endsWith('s')) {
+        const singularTitle = title.slice(0, -1);
+        match = await prisma.exercise.findFirst({
+            where: {
+                title: {
+                    equals: singularTitle,
+                },
+                isCustom: false
+            }
+        });
+    }
+
+    // 3. Fallback: "Standard" variation for generic terms
+    // If user typed "Squat" or "Squats" and we didn't find an exact "Squat" (maybe it's named "Bodyweight Squat"),
+    // verify if a "safe default" exists.
+    if (!match && (title.toLowerCase() === 'squat' || title.toLowerCase() === 'squats')) {
+        match = await prisma.exercise.findFirst({
+            where: {
+                OR: [
+                    { title: { equals: 'Bodyweight Squat' } },
+                    { title: { equals: 'Air Squat' } },
+                    { title: { equals: 'Goblet Squat' } } // Fallback preference
+                ],
+                isCustom: false
+            }
+        });
+    }
+
+    // 4. Last Resort: Partial Containment (CAUTIOUS)
+    // Only if the search term is long enough to avoid "Row" matching "Throw"
+    // And exclude the generic Terms that cause noise.
+    if (!match && title.length > 3 && !['squat', 'squats', 'row', 'rows'].includes(title.toLowerCase())) {
+        match = await prisma.exercise.findFirst({
+            where: {
+                title: {
+                    contains: title
+                },
+                isCustom: false
+            }
+        });
+    }
 
     return {
         originalLine: line,

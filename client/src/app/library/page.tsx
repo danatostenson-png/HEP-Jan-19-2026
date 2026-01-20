@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import api from "@/lib/api";
 import { Header } from "@/components/Header";
+import Link from "next/link";
 import { Search, Filter, Dumbbell, Star, Loader2 } from "lucide-react";
 import { CreateExerciseModal } from "@/components/CreateExerciseModal";
 
@@ -153,15 +154,17 @@ export default function LibraryPage() {
                         {exercises.map((exercise) => (
                             <div key={exercise.id} className="bg-white rounded-xl border border-gray-100 overflow-hidden shadow-sm hover:shadow-md transition-shadow group flex flex-col relative">
                                 <div className="aspect-video bg-gray-100 relative overflow-hidden">
-                                    {/* In a real app, use Next.js Image component */}
-                                    <img
-                                        src={exercise.imageUrl || "https://placehold.co/600x400?text=No+Image"}
-                                        alt={exercise.title}
-                                        className="w-full h-full object-cover object-center group-hover:scale-105 transition-transform duration-300"
-                                    />
-                                    <div className="absolute top-2 left-2 bg-black/50 text-white text-xs px-2 py-1 rounded backdrop-blur-sm">
-                                        {exercise.bodyPart}
-                                    </div>
+                                    <Link href={`/library/${exercise.id}`} className="block h-full cursor-pointer">
+                                        {/* In a real app, use Next.js Image component */}
+                                        <img
+                                            src={exercise.imageUrl || "https://placehold.co/600x400?text=No+Image"}
+                                            alt={exercise.title}
+                                            className="w-full h-full object-cover object-center group-hover:scale-105 transition-transform duration-300"
+                                        />
+                                        <div className="absolute top-2 left-2 bg-black/50 text-white text-xs px-2 py-1 rounded backdrop-blur-sm">
+                                            {exercise.bodyPart}
+                                        </div>
+                                    </Link>
 
                                     {/* Favorite Button */}
                                     <button
