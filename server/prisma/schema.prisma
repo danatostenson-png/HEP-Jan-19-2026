@@ -62,6 +62,19 @@ model Exercise {
   updatedAt   DateTime @updatedAt
   
   favoritedBy Favorite[]
+
+  // Express Import Metadata
+  parsedFromExpressImport Boolean @default(false)
+  globalCadenceApplied    Boolean @default(false)
+  autoExercisePlanId      String? // For future audit linkage
+}
+
+model ExpressImportLog {
+  id          String   @id @default(uuid())
+  rawText     String
+  parsedCount Int
+  userId      String
+  createdAt   DateTime @default(now())
 }
 
 // A specific program assigned to a patient

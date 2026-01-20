@@ -87,7 +87,16 @@ exports.toggleFavorite = async (req, res) => {
 // Create Custom Exercise
 exports.createCustomExercise = async (req, res) => {
     try {
-        const { title, description, imageUrl, bodyPart } = req.body;
+        const {
+            title,
+            description,
+            imageUrl,
+            bodyPart,
+            parsedFromExpressImport,
+            globalCadenceApplied,
+            autoExercisePlanId
+        } = req.body;
+
         let finalImageUrl = imageUrl;
         let imageSource = 'library_url';
 
@@ -108,7 +117,11 @@ exports.createCustomExercise = async (req, res) => {
                 // Save AI/Analysis metadata if provided
                 autoDescription: req.body.autoDescription || null,
                 analysisSource: req.body.analysisSource || 'manual',
-                nameAnchorUsed: req.body.nameAnchorUsed === 'true' || req.body.nameAnchorUsed === true
+                nameAnchorUsed: req.body.nameAnchorUsed === 'true' || req.body.nameAnchorUsed === true,
+                // Express Import Tags
+                parsedFromExpressImport: parsedFromExpressImport === 'true' || parsedFromExpressImport === true,
+                globalCadenceApplied: globalCadenceApplied === 'true' || globalCadenceApplied === true,
+                autoExercisePlanId: autoExercisePlanId || null,
             }
         });
 
