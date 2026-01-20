@@ -40,7 +40,7 @@ function NewProgramContent() {
             console.error("Failed to save program", error);
             alert("Failed to save program. Please try again.");
         } finally {
-            setIsSaving(false);
+            setIsSubmitting(false);
         }
     };
 
@@ -48,7 +48,7 @@ function NewProgramContent() {
         <ProgramForm
             mode="create"
             onSubmit={handleSubmit}
-            isSubmitting={isSaving}
+            isSubmitting={isSubmitting}
         />
     );
 }
