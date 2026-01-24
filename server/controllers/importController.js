@@ -1,7 +1,5 @@
-const { PrismaClient } = require('@prisma/client');
-const prisma = new PrismaClient({
-    datasourceUrl: process.env.DATABASE_URL,
-});
+const prisma = require('../lib/prisma');
+
 
 exports.processExpressImport = async (req, res) => {
     try {
@@ -132,11 +130,12 @@ async function parseLine(line, globalCadence) {
     if (title.length === 0) return null;
 
     // MATCHING STRATEGY
-    // 1. Exact Match (Case insensitive)
+    // 1. Exact Match (Case insensitive via mode)
     let match = await prisma.exercise.findFirst({
         where: {
             title: {
                 equals: title,
+                mode: 'insensitive'
             },
             isCustom: false
         }
@@ -149,6 +148,7 @@ async function parseLine(line, globalCadence) {
             where: {
                 title: {
                     equals: singularTitle,
+                    mode: 'insensitive'
                 },
                 isCustom: false
             }
@@ -156,15 +156,13 @@ async function parseLine(line, globalCadence) {
     }
 
     // 3. Fallback: "Standard" variation for generic terms
-    // If user typed "Squat" or "Squats" and we didn't find an exact "Squat" (maybe it's named "Bodyweight Squat"),
-    // verify if a "safe default" exists.
     if (!match && (title.toLowerCase() === 'squat' || title.toLowerCase() === 'squats')) {
         match = await prisma.exercise.findFirst({
             where: {
                 OR: [
-                    { title: { equals: 'Bodyweight Squat' } },
-                    { title: { equals: 'Air Squat' } },
-                    { title: { equals: 'Goblet Squat' } } // Fallback preference
+                    { title: { equals: 'Bodyweight Squat', mode: 'insensitive' } },
+                    { title: { equals: 'Air Squat', mode: 'insensitive' } },
+                    { title: { equals: 'Goblet Squat', mode: 'insensitive' } } // Fallback preference
                 ],
                 isCustom: false
             }
@@ -172,13 +170,12 @@ async function parseLine(line, globalCadence) {
     }
 
     // 4. Last Resort: Partial Containment (CAUTIOUS)
-    // Only if the search term is long enough to avoid "Row" matching "Throw"
-    // And exclude the generic Terms that cause noise.
     if (!match && title.length > 3 && !['squat', 'squats', 'row', 'rows'].includes(title.toLowerCase())) {
         match = await prisma.exercise.findFirst({
             where: {
                 title: {
-                    contains: title
+                    contains: title,
+                    mode: 'insensitive'
                 },
                 isCustom: false
             }
